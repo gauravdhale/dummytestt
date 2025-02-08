@@ -7,37 +7,77 @@ import plotly.graph_objects as go
 import requests
 from datetime import datetime, timedelta
 import seaborn as sns
-# List of banking sector stocks
-banking_stocks = {
-    "HDFC Bank": "HDFCBANK.NS",
-    "ICICI Bank": "ICICIBANK.NS",
-    "State Bank of India": "SBIN.NS",
-    "Kotak Mahindra Bank": "KOTAKBANK.NS",
-    "Axis Bank": "AXISBANK.NS",
-    "Bank of Baroda": "BANKBARODA.NS"
+
+# Define Banking Stocks and Bank Nifty Index
+companies = {
+    'HDFC Bank': 'HDFCBANK.NS',
+    'ICICI Bank': 'ICICIBANK.NS',
+    'State Bank of India': 'SBIN.NS',
+    'Kotak Mahindra Bank': 'KOTAKBANK.NS',
+    'Axis Bank': 'AXISBANK.NS',
+    'Bank of Baroda': 'BANKBARODA.NS'
 }
 
-def fetch_stock_data(ticker, period="5y"):
-    stock = yf.Ticker(ticker)
-    data = stock.history(period=period)
-    return data
+csv_files = {
+    'HDFC Bank': 'HDFCBANK.csv',
+    'ICICI Bank': 'ICICI_BANK.csv',
+    'State Bank of India': 'SBI.csv',
+    'Kotak Mahindra Bank': 'KOTAK.csv',
+    'Axis Bank': 'AXIS.csv',
+    'Bank of Baroda': 'BARODA.csv'
+}
+bank_nifty_ticker = "^NSEBANK"
 
-def plot_heatmap(correlation_matrix):
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-    st.pyplot(fig)
-
+# Streamlit Configuration
 st.set_page_config(page_title="Banking Sector Dashboard", layout="wide")
-st.title("Banking Sector Financial Dashboard")
+st.title("\ud83d\udcca Banking Sector Financial Dashboard")
+st.markdown("---")
 
-# Fetching all stock data for correlation heatmap
-all_stock_data = {name: fetch_stock_data(ticker) for name, ticker in banking_stocks.items()}
-closing_prices = pd.DataFrame({name: data["Close"] for name, data in all_stock_data.items() if not data.empty})
+# Selection Dropdown
+selected_stock = st.sidebar.selectbox("\ud83d\udd0d Select a Bank", list(companies.keys()))
 
-if not closing_prices.empty:
-    correlation_matrix = closing_prices.corr()
-    st.subheader("Correlation Heatmap of Banking Stocks")
-    plot_heatmap(correlation_matrix)
+# Function to Fetch Stock Data
+def fetch_stock_data(ticker, period="5y"):
+    try:
+        stock_data = yf.download(ticker, period=period, interval="1d")
+        if stock_data.empty:
+            return pd.DataFrame()
+        stock_data['MA_20'] = stock_data['Close'].rolling(window=20).mean()
+        stock_data['MA_50'] = stock_data['Close'].rolling(window=50).mean()
+        stock_data['Price_Change'] = stock_data['Close'].pct_change()
+        return stock_data.dropna()
+    except Exception as e:
+        st.error(f"Error fetching data for {ticker}: {e}")
+        return pd.DataFrame()
+
+# Fetch Data
+bank_nifty_data = fetch_stock_data(bank_nifty_ticker)
+selected_stock_data = fetch_stock_data(companies[selected_stock])
+
+# Heatmap Section
+st.header("Nifty Bank Composition Heatmap")
+github_url = st.text_input("Enter the GitHub CSV file URL", value="https://raw.githubusercontent.com/gauravdhale/BFMDEMO/main/heatmap.csv")
+
+if github_url:
+    try:
+        df = pd.read_csv(github_url, encoding='ISO-8859-1')
+        if 'Company' in df.columns:
+            df.set_index('Company', inplace=True)
+        else:
+            st.write("Error: 'Company' column not found in the CSV file.")
+        
+        if 'Weight(%)' in df.columns:
+            plt.figure(figsize=(6,8))
+            heatmap_data = df[['Weight(%)']]
+            sns.heatmap(heatmap_data, annot=True, cmap='YlGnBu', cbar=True)
+            plt.title('Nifty Bank Composition Heatmap')
+            plt.ylabel('Company')
+            plt.xlabel('')
+            plt.tight_layout()
+            st.pyplot(plt)
+        else:
+            st.write("HEAT MAP ")
+    except Exception as e:
+        st.write(f"An error occurred: {e}")
 else:
-    st.warning("Not enough data for correlation analysis.")
-
+    st.write("Please upload a CSV file or enter a valid GitHub URL.")
