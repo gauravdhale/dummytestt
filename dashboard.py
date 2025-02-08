@@ -30,7 +30,8 @@ bank_nifty_ticker = "^NSEBANK"
 
 # Streamlit Configuration
 st.set_page_config(page_title="Banking Sector Dashboard", layout="wide")
-st.title("\ud83d\udcca Banking Sector Financial Dashboard")
+st.title("Banking Sector Financial Dashboard")
+
 st.markdown("---")
 
 # Selection Dropdown
