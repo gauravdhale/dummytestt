@@ -2,21 +2,30 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import requests
 from datetime import datetime, timedelta
+import seaborn as sns
 
 # Define Banking Stocks and Bank Nifty Index
-banking_stocks = {
-    "HDFC Bank": "HDFCBANK.NS",
-    "ICICI Bank": "ICICIBANK.NS",
-    "State Bank of India": "SBIN.NS",
-    "Kotak Mahindra Bank": "KOTAKBANK.NS",
-    "Axis Bank": "AXISBANK.NS",
-    "Bank of Baroda": "BANKBARODA.NS"
+companies = {
+    'HDFC Bank': 'HDFCBANK.NS',
+    'ICICI Bank': 'ICICIBANK.NS',
+    'State Bank of India': 'SBIN.NS',
+    'Kotak Mahindra Bank': 'KOTAKBANK.NS',
+    'Axis Bank': 'AXISBANK.NS',
+    'Bank of Baroda': 'BANKBARODA.NS'
 }
 
+csv_files = {
+    'HDFC Bank': 'HDFCBANK.csv',
+    'ICICI Bank': 'ICICI_BANK.csv',
+    'State Bank of India': 'SBI.csv',
+    'Kotak Mahindra Bank': 'KOTAK.csv',
+    'Axis Bank': 'AXIS.csv',
+    'Bank of Baroda': 'BARODA.csv'
+}
 bank_nifty_ticker = "^NSEBANK"
 
 # Streamlit Configuration
@@ -25,7 +34,7 @@ st.title("📊 Banking Sector Financial Dashboard")
 st.markdown("---")
 
 # Selection Dropdown
-selected_stock = st.sidebar.selectbox("🔍 Select a Bank", list(banking_stocks.keys()))
+selected_stock = st.sidebar.selectbox("🔍 Select a Bank", list(companies.keys()))
 
 # Function to Fetch Stock Data
 def fetch_stock_data(ticker, period="5y"):
@@ -41,19 +50,9 @@ def fetch_stock_data(ticker, period="5y"):
         st.error(f"Error fetching data for {ticker}: {e}")
         return pd.DataFrame()
 
-# Function to Plot Heatmap
-def plot_heatmap(correlation_matrix):
-    fig, ax = plt.subplots(figsize=(8, 6))
-    sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
-    st.pyplot(fig)
-
 # Fetch Data
 bank_nifty_data = fetch_stock_data(bank_nifty_ticker)
-selected_stock_data = fetch_stock_data(banking_stocks[selected_stock])
-
-# Fetching all stock data for correlation heatmap
-all_stock_data = {name: fetch_stock_data(ticker) for name, ticker in banking_stocks.items()}
-closing_prices = pd.DataFrame({name: data["Close"] for name, data in all_stock_data.items() if not data.empty})
+selected_stock_data = fetch_stock_data(companies[selected_stock])
 
 # Display Metrics if Data is Available
 st.sidebar.header("📌 Key Metrics")
@@ -99,12 +98,3 @@ with col2:
         st.pyplot(fig)
     else:
         st.warning(f"No data available for {selected_stock}.")
-
-# Correlation Heatmap
-with col3:
-    st.subheader("Correlation Heatmap")
-    if not closing_prices.empty:
-        correlation_matrix = closing_prices.corr()
-        plot_heatmap(correlation_matrix)
-    else:
-        st.warning("Not enough data for correlation analysis.")
