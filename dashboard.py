@@ -3,9 +3,8 @@ import yfinance as yf
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import plotly.graph_objects as go
-from datetime import datetime, timedelta
 import seaborn as sns
+from datetime import datetime, timedelta
 
 # Define Banking Stocks and Bank Nifty Index
 companies = {
@@ -17,14 +16,6 @@ companies = {
     'Bank of Baroda': 'BANKBARODA.NS'
 }
 
-csv_files = {
-    'HDFC Bank': 'HDFCBANK.csv',
-    'ICICI Bank': 'ICICI_BANK.csv',
-    'State Bank of India': 'SBI.csv',
-    'Kotak Mahindra Bank': 'KOTAK.csv',
-    'Axis Bank': 'AXIS.csv',
-    'Bank of Baroda': 'BARODA.csv'
-}
 bank_nifty_ticker = "^NSEBANK"
 
 # Streamlit Configuration
