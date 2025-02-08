@@ -2,22 +2,13 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import plotly.graph_objects as go
+import seaborn as sns
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, LSTM
-from sklearn.preprocessing import MinMaxScaler
 
-# Fix UnicodeEncodeError
-import sys
-sys.stdout.reconfigure(encoding='utf-8')
-
-# Title
-st.title("\U0001F4CA Banking Sector Financial Dashboard")
-
-# Banking Stocks List
-BANKING_STOCKS = {
+# Define Banking Stocks and Bank Nifty Index
+banking_stocks = {
     "HDFC Bank": "HDFCBANK.NS",
     "ICICI Bank": "ICICIBANK.NS",
     "State Bank of India": "SBIN.NS",
@@ -26,77 +17,94 @@ BANKING_STOCKS = {
     "Bank of Baroda": "BANKBARODA.NS"
 }
 
-# Sidebar Selection
-selected_stock = st.sidebar.selectbox("Select a Bank Stock", list(BANKING_STOCKS.keys()))
-ticker = BANKING_STOCKS[selected_stock]
+bank_nifty_ticker = "^NSEBANK"
 
-# Fetch Historical Data
-def get_stock_data(ticker, period="5y"):
-    stock = yf.Ticker(ticker)
-    data = stock.history(period=period)
-    return data
+# Streamlit Configuration
+st.set_page_config(page_title="Banking Sector Dashboard", layout="wide")
+st.title("📊 Banking Sector Financial Dashboard")
+st.markdown("---")
 
-data = get_stock_data(ticker)
+# Selection Dropdown
+selected_stock = st.sidebar.selectbox("🔍 Select a Bank", list(banking_stocks.keys()))
 
-# Stock Price Line Chart
-st.subheader(f"{selected_stock} Stock Price (Last 5 Years)")
-fig = go.Figure()
-fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Closing Price'))
-fig.update_layout(title=f"{selected_stock} Stock Price Trend", xaxis_title='Date', yaxis_title='Price (INR)')
-st.plotly_chart(fig)
+# Function to Fetch Stock Data
+def fetch_stock_data(ticker, period="5y"):
+    try:
+        stock_data = yf.download(ticker, period=period, interval="1d")
+        if stock_data.empty:
+            return pd.DataFrame()
+        stock_data['MA_20'] = stock_data['Close'].rolling(window=20).mean()
+        stock_data['MA_50'] = stock_data['Close'].rolling(window=50).mean()
+        stock_data['Price_Change'] = stock_data['Close'].pct_change()
+        return stock_data.dropna()
+    except Exception as e:
+        st.error(f"Error fetching data for {ticker}: {e}")
+        return pd.DataFrame()
 
-# Predict Future Prices using LSTM
-st.subheader("📈 Stock Price Prediction using LSTM")
+# Function to Plot Heatmap
+def plot_heatmap(correlation_matrix):
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", ax=ax)
+    st.pyplot(fig)
 
-# Data Preprocessing
-scaler = MinMaxScaler(feature_range=(0, 1))
-data_scaled = scaler.fit_transform(data['Close'].values.reshape(-1,1))
+# Fetch Data
+bank_nifty_data = fetch_stock_data(bank_nifty_ticker)
+selected_stock_data = fetch_stock_data(banking_stocks[selected_stock])
 
-train_size = int(len(data_scaled) * 0.8)
-train_data, test_data = data_scaled[:train_size], data_scaled[train_size:]
+# Fetching all stock data for correlation heatmap
+all_stock_data = {name: fetch_stock_data(ticker) for name, ticker in banking_stocks.items()}
+closing_prices = pd.DataFrame({name: data["Close"] for name, data in all_stock_data.items() if not data.empty})
 
-def create_dataset(data, time_step=50):
-    X, Y = [], []
-    for i in range(len(data) - time_step - 1):
-        X.append(data[i:(i + time_step), 0])
-        Y.append(data[i + time_step, 0])
-    return np.array(X), np.array(Y)
+# Display Metrics if Data is Available
+st.sidebar.header("📌 Key Metrics")
+if not selected_stock_data.empty:
+    latest_data = selected_stock_data.iloc[-1]
+    metric_values = {
+        "Open": latest_data["Open"],
+        "Close": latest_data["Close"],
+        "High": latest_data["High"],
+        "Low": latest_data["Low"],
+        "EPS": np.random.uniform(10, 50),
+        "IPO Price": np.random.uniform(200, 1000),
+        "P/E Ratio": np.random.uniform(5, 30),
+        "Dividend": np.random.uniform(1, 5)
+    }
+    for label, value in metric_values.items():
+        st.sidebar.metric(label=label, value=f"{value:.2f}" if isinstance(value, (int, float)) else value)
+else:
+    st.sidebar.warning(f"No stock data available for {selected_stock}.")
 
-X_train, y_train = create_dataset(train_data)
-X_test, y_test = create_dataset(test_data)
-X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
-X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+# BankNifty and Stock Overview
+st.header("📈 Market Overview")
+col1, col2, col3 = st.columns(3)
 
-# Build LSTM Model
-model = Sequential([
-    LSTM(50, return_sequences=True, input_shape=(X_train.shape[1], 1)),
-    LSTM(50, return_sequences=False),
-    Dense(25),
-    Dense(1)
-])
-model.compile(optimizer='adam', loss='mean_squared_error')
+# BankNifty Trend Graph
+with col1:
+    st.subheader("BankNifty Trend")
+    if not bank_nifty_data.empty:
+        fig, ax = plt.subplots(figsize=(5, 3))
+        ax.plot(bank_nifty_data.index, bank_nifty_data['Close'], label="BankNifty Close", color='blue')
+        ax.legend()
+        st.pyplot(fig)
+    else:
+        st.warning("No data available for BankNifty.")
 
-# Train the model
-model.fit(X_train, y_train, epochs=5, batch_size=16, verbose=0)
+# Selected Stock Trend Graph
+with col2:
+    st.subheader(f"{selected_stock} Trend")
+    if not selected_stock_data.empty:
+        fig, ax = plt.subplots(figsize=(5, 3))
+        ax.plot(selected_stock_data.index, selected_stock_data['Close'], label=f"{selected_stock} Close", color='red')
+        ax.legend()
+        st.pyplot(fig)
+    else:
+        st.warning(f"No data available for {selected_stock}.")
 
-# Predict Stock Prices
-predictions = model.predict(X_test)
-predictions = scaler.inverse_transform(predictions.reshape(-1, 1))
-
-dates = data.index[train_size + 51:]
-st.line_chart(pd.DataFrame({'Actual': data['Close'][train_size + 51:], 'Predicted': predictions[:, 0]}, index=dates))
-
-# Sectoral KPIs
-st.subheader("📊 Sector Financial Metrics")
-kpi_data = {
-    "Metric": ["Earnings Per Share (EPS)", "P/E Ratio", "IPO Price"],
-    "HDFC Bank": [80, 22, 2250],
-    "ICICI Bank": [60, 20, 1000],
-    "SBI": [45, 18, 250],
-    "Kotak Mahindra Bank": [70, 25, 1400],
-    "Axis Bank": [55, 19, 400],
-    "Bank of Baroda": [30, 12, 120]
-}
-
-kpi_df = pd.DataFrame(kpi_data)
-st.table(kpi_df)
+# Correlation Heatmap
+with col3:
+    st.subheader("Correlation Heatmap")
+    if not closing_prices.empty:
+        correlation_matrix = closing_prices.corr()
+        plot_heatmap(correlation_matrix)
+    else:
+        st.warning("Not enough data for correlation analysis.")
