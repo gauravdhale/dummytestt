@@ -2,83 +2,101 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-import requests
+import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
-import seaborn as sns
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, LSTM
+from sklearn.preprocessing import MinMaxScaler
 
-# Define Banking Stocks and Bank Nifty Index
-companies = {
-    'HDFC Bank': 'HDFCBANK.NS',
-    'ICICI Bank': 'ICICIBANK.NS',
-    'State Bank of India': 'SBIN.NS',
-    'Kotak Mahindra Bank': 'KOTAKBANK.NS',
-    'Axis Bank': 'AXISBANK.NS',
-    'Bank of Baroda': 'BANKBARODA.NS'
+# Fix UnicodeEncodeError
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
+
+# Title
+st.title("\U0001F4CA Banking Sector Financial Dashboard")
+
+# Banking Stocks List
+BANKING_STOCKS = {
+    "HDFC Bank": "HDFCBANK.NS",
+    "ICICI Bank": "ICICIBANK.NS",
+    "State Bank of India": "SBIN.NS",
+    "Kotak Mahindra Bank": "KOTAKBANK.NS",
+    "Axis Bank": "AXISBANK.NS",
+    "Bank of Baroda": "BANKBARODA.NS"
 }
 
-csv_files = {
-    'HDFC Bank': 'HDFCBANK.csv',
-    'ICICI Bank': 'ICICI_BANK.csv',
-    'State Bank of India': 'SBI.csv',
-    'Kotak Mahindra Bank': 'KOTAK.csv',
-    'Axis Bank': 'AXIS.csv',
-    'Bank of Baroda': 'BARODA.csv'
+# Sidebar Selection
+selected_stock = st.sidebar.selectbox("Select a Bank Stock", list(BANKING_STOCKS.keys()))
+ticker = BANKING_STOCKS[selected_stock]
+
+# Fetch Historical Data
+def get_stock_data(ticker, period="5y"):
+    stock = yf.Ticker(ticker)
+    data = stock.history(period=period)
+    return data
+
+data = get_stock_data(ticker)
+
+# Stock Price Line Chart
+st.subheader(f"{selected_stock} Stock Price (Last 5 Years)")
+fig = go.Figure()
+fig.add_trace(go.Scatter(x=data.index, y=data['Close'], mode='lines', name='Closing Price'))
+fig.update_layout(title=f"{selected_stock} Stock Price Trend", xaxis_title='Date', yaxis_title='Price (INR)')
+st.plotly_chart(fig)
+
+# Predict Future Prices using LSTM
+st.subheader("📈 Stock Price Prediction using LSTM")
+
+# Data Preprocessing
+scaler = MinMaxScaler(feature_range=(0, 1))
+data_scaled = scaler.fit_transform(data['Close'].values.reshape(-1,1))
+
+train_size = int(len(data_scaled) * 0.8)
+train_data, test_data = data_scaled[:train_size], data_scaled[train_size:]
+
+def create_dataset(data, time_step=50):
+    X, Y = [], []
+    for i in range(len(data) - time_step - 1):
+        X.append(data[i:(i + time_step), 0])
+        Y.append(data[i + time_step, 0])
+    return np.array(X), np.array(Y)
+
+X_train, y_train = create_dataset(train_data)
+X_test, y_test = create_dataset(test_data)
+X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
+X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
+
+# Build LSTM Model
+model = Sequential([
+    LSTM(50, return_sequences=True, input_shape=(X_train.shape[1], 1)),
+    LSTM(50, return_sequences=False),
+    Dense(25),
+    Dense(1)
+])
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+model.fit(X_train, y_train, epochs=5, batch_size=16, verbose=0)
+
+# Predict Stock Prices
+predictions = model.predict(X_test)
+predictions = scaler.inverse_transform(predictions.reshape(-1, 1))
+
+dates = data.index[train_size + 51:]
+st.line_chart(pd.DataFrame({'Actual': data['Close'][train_size + 51:], 'Predicted': predictions[:, 0]}, index=dates))
+
+# Sectoral KPIs
+st.subheader("📊 Sector Financial Metrics")
+kpi_data = {
+    "Metric": ["Earnings Per Share (EPS)", "P/E Ratio", "IPO Price"],
+    "HDFC Bank": [80, 22, 2250],
+    "ICICI Bank": [60, 20, 1000],
+    "SBI": [45, 18, 250],
+    "Kotak Mahindra Bank": [70, 25, 1400],
+    "Axis Bank": [55, 19, 400],
+    "Bank of Baroda": [30, 12, 120]
 }
-bank_nifty_ticker = "^NSEBANK"
 
-# Streamlit Configuration
-st.set_page_config(page_title="Banking Sector Dashboard", layout="wide")
-st.title("Banking Sector Financial Dashboard")
-
-st.markdown("---")
-
-# Selection Dropdown
-selected_stock = st.sidebar.selectbox("\ud83d\udd0d Select a Bank", list(companies.keys()))
-
-# Function to Fetch Stock Data
-def fetch_stock_data(ticker, period="5y"):
-    try:
-        stock_data = yf.download(ticker, period=period, interval="1d")
-        if stock_data.empty:
-            return pd.DataFrame()
-        stock_data['MA_20'] = stock_data['Close'].rolling(window=20).mean()
-        stock_data['MA_50'] = stock_data['Close'].rolling(window=50).mean()
-        stock_data['Price_Change'] = stock_data['Close'].pct_change()
-        return stock_data.dropna()
-    except Exception as e:
-        st.error(f"Error fetching data for {ticker}: {e}")
-        return pd.DataFrame()
-
-# Fetch Data
-bank_nifty_data = fetch_stock_data(bank_nifty_ticker)
-selected_stock_data = fetch_stock_data(companies[selected_stock])
-
-# Heatmap Section
-st.header("Nifty Bank Composition Heatmap")
-github_url = st.text_input("Enter the GitHub CSV file URL", value="https://raw.githubusercontent.com/gauravdhale/BFMDEMO/main/heatmap.csv")
-
-if github_url:
-    try:
-        df = pd.read_csv(github_url, encoding='ISO-8859-1')
-        if 'Company' in df.columns:
-            df.set_index('Company', inplace=True)
-        else:
-            st.write("Error: 'Company' column not found in the CSV file.")
-        
-        if 'Weight(%)' in df.columns:
-            plt.figure(figsize=(6,8))
-            heatmap_data = df[['Weight(%)']]
-            sns.heatmap(heatmap_data, annot=True, cmap='YlGnBu', cbar=True)
-            plt.title('Nifty Bank Composition Heatmap')
-            plt.ylabel('Company')
-            plt.xlabel('')
-            plt.tight_layout()
-            st.pyplot(plt)
-        else:
-            st.write("HEAT MAP ")
-    except Exception as e:
-        st.write(f"An error occurred: {e}")
-else:
-    st.write("Please upload a CSV file or enter a valid GitHub URL.")
+kpi_df = pd.DataFrame(kpi_data)
+st.table(kpi_df)
