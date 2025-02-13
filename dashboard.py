@@ -33,7 +33,6 @@ def get_stock_data(tickers):
         }
     return data
 
-# List of bank tickers for Yahoo Finance
 tickers = {
     "HDFC Bank": "HDFCBANK.NS",
     "Kotak Mahindra Bank": "KOTAKBANK.NS",
@@ -50,17 +49,5 @@ data = get_stock_data(tickers.values())
 
 for bank, ticker in tickers.items():
     st.sidebar.subheader(bank)
-    st.sidebar.write(f"**Open:** {data[ticker]['Open']}")
-    st.sidebar.write(f"**Close:** {data[ticker]['Close']}")
-    st.sidebar.write(f"**High:** {data[ticker]['High']}")
-    st.sidebar.write(f"**Low:** {data[ticker]['Low']}")
     for key, value in data[ticker].items():
-        if key not in ["Open", "Close", "High", "Low"]:
-            st.sidebar.write(f"**{key}:** {value}")
-
-st.write("### Select a bank to view details")
-selected_bank = st.selectbox("Choose a bank", list(tickers.keys()))
-
-st.write(f"## {selected_bank} Stock Data")
-for key, value in data[tickers[selected_bank]].items():
-    st.write(f"**{key}:** {value}")
+        st.sidebar.write(f"**{key}:** {value}")
