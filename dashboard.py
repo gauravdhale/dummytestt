@@ -45,9 +45,11 @@ tickers = {
 st.title("Bank Stock Data Dashboard")
 st.sidebar.header("Stock Metrics")
 
-data = get_stock_data(tickers.values())
+selected_bank = st.sidebar.selectbox("Select a bank", list(tickers.keys()))
 
-for bank, ticker in tickers.items():
-    st.sidebar.subheader(bank)
-    for key, value in data[ticker].items():
-        st.sidebar.write(f"**{key}:** {value}")
+data = get_stock_data([tickers[selected_bank]])
+
+ticker = tickers[selected_bank]
+st.sidebar.subheader(selected_bank)
+for key, value in data[ticker].items():
+    st.sidebar.write(f"**{key}:** {value}")
