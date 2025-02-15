@@ -42,11 +42,9 @@ tickers = {
     "ICICI Bank": "ICICIBANK.NS"
 }
 
-st.set_page_config(layout="wide")
 st.title("Bank Stock Data Dashboard")
-
-# Sidebar
 st.sidebar.header("Stock Metrics")
+
 selected_bank = st.sidebar.selectbox("Select a bank", list(tickers.keys()))
 
 data = get_stock_data([tickers[selected_bank]])
@@ -54,17 +52,4 @@ data = get_stock_data([tickers[selected_bank]])
 ticker = tickers[selected_bank]
 st.sidebar.subheader(selected_bank)
 for key, value in data[ticker].items():
-    st.sidebar.write(f"**{key}:** {value}")
-
-# Sidebar for additional options
-st.sidebar.header("Settings")
-st.sidebar.write("Use the dropdown to select a bank and view key metrics.")
-
-# Main content area
-st.header(f"Stock Data for {selected_bank}")
-if ticker in data:
-    stock_data = data[ticker]
-    st.write("### Key Stock Metrics")
-    st.write(stock_data)
-else:
-    st.write("No data available.")
+    st.sidebar.write(f"{key}:** {value}")
