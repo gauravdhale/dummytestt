@@ -1,6 +1,6 @@
 import yfinance as yf
-import pandas as pd
 import matplotlib.pyplot as plt
+import pandas as pd
 
 # List of companies and their corresponding Yahoo Finance tickers
 companies = {
@@ -18,7 +18,8 @@ eps_data = pd.DataFrame()
 for company, ticker in companies.items():
     stock = yf.Ticker(ticker)
     earnings = stock.earnings
-    eps_data[company] = earnings['Earnings']
+    if not earnings.empty:
+        eps_data[company] = earnings['Earnings Per Share']
 
 # Transpose the DataFrame to have years as rows
 eps_data = eps_data.T
