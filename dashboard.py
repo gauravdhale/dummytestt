@@ -4,15 +4,15 @@ import numpy as np
 
 def plot_eps(bank_name):
     eps_data = {
-        "State Bank of India": [10, 12, 15, 18, 17],
-        "Kotak Mahindra Bank": [25, 27, 29, 30, 28],
-        "Axis Bank": [20, 22, 21, 23, 24],
-        "Bank of Baroda": [8, 10, 9, 12, 13],
-        "HDFC Bank": [30, 32, 34, 36, 38],
-        "ICICI Bank": [22, 24, 26, 27, 28]
+        "State Bank of India": [22.15, 25.11, 39.64, 62.23, 75.17, 88.91],
+        "Kotak Mahindra Bank": [18.49, 20.25, 38.62, 52.77, 61.41, 113.32],
+        "Axis Bank": [-60.94, -33.64, 18.46, 21.76, 67.38, 91.02],
+        "Bank of Baroda": [-45.33, -27.55, -11.08, 13.48, 22.65, 39.50],
+        "HDFC Bank": [25.74, 27.96, 39.49, 57.69, 53.82, 90.95],
+        "ICICI Bank": [-9.46, -0.03, 21.15, 36.13, 53.04, 69.66]
     }
     
-    years = np.array([2020, 2021, 2022, 2023, 2024])
+    years = np.array([2020, 2021, 2022, 2023, 2024,2025])
     
     if bank_name in eps_data:
         fig, ax = plt.subplots(figsize=(8, 5))
