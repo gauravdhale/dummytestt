@@ -1,38 +1,30 @@
-import yfinance as yf
 import matplotlib.pyplot as plt
-import pandas as pd
+import numpy as np
 
-# List of companies and their corresponding Yahoo Finance tickers
-companies = {
-    'HDFC Bank': 'HDFCBANK.NS',
-    'ICICI Bank': 'ICICIBANK.NS',
-    'State Bank of India': 'SBIN.NS',
-    'Kotak Mahindra Bank': 'KOTAKBANK.NS',
-    'Axis Bank': 'AXISBANK.NS',
-    'Bank of Baroda': 'BANKBARODA.NS'
-}
-
-# Fetch EPS data
-eps_data = pd.DataFrame()
-
-for company, ticker in companies.items():
-    stock = yf.Ticker(ticker)
-    earnings = stock.earnings
-    if isinstance(earnings, pd.DataFrame) and not earnings.empty:
-        eps_data[company] = earnings['Earnings Per Share']
+def plot_eps(bank_name):
+    eps_data = {
+        "State Bank of India": [10, 12, 15, 18, 17],
+        "Kotak Mahindra Bank": [25, 27, 29, 30, 28],
+        "Axis Bank": [20, 22, 21, 23, 24],
+        "Bank of Baroda": [8, 10, 9, 12, 13],
+        "HDFC Bank": [30, 32, 34, 36, 38],
+        "ICICI Bank": [22, 24, 26, 27, 28]
+    }
+    
+    years = np.arange(2020, 2025)
+    
+    if bank_name in eps_data:
+        plt.figure(figsize=(8, 5))
+        plt.plot(years, eps_data[bank_name], marker='o', linestyle='-', label=bank_name)
+        plt.xlabel("Year")
+        plt.ylabel("EPS")
+        plt.title(f"Earnings Per Share (EPS) of {bank_name}")
+        plt.legend()
+        plt.grid(True)
+        plt.show()
     else:
-        print(f"Could not retrieve earnings data for {company}")
+        print("Bank not found. Please enter a valid bank name.")
 
-# Transpose the DataFrame to have years as rows
-eps_data = eps_data.T
-
-# Plot EPS data
-eps_data.plot(kind='bar', figsize=(12, 6))
-plt.title('EPS of Various Companies')
-plt.xlabel('Year')
-plt.ylabel('EPS')
-plt.legend(title='Company')
-plt.xticks(rotation=45)
-plt.tight_layout()
-plt.grid(axis='y', linestyle='--', alpha=0.5)
-plt.show()
+# Example usage
+selected_bank = input("Enter the bank name: ")
+plot_eps(selected_bank)
