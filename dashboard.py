@@ -17,8 +17,11 @@ eps_data = pd.DataFrame()
 
 for company, ticker in companies.items():
     stock = yf.Ticker(ticker)
-    financials = stock.financials.T  # Transpose to get years as rows
-    eps_data[company] = financials['Earnings']
+    earnings = stock.earnings
+    eps_data[company] = earnings['Earnings']
+
+# Transpose the DataFrame to have years as rows
+eps_data = eps_data.T
 
 # Plot EPS data
 eps_data.plot(kind='bar', figsize=(12, 6))
