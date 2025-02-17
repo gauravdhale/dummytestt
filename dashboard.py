@@ -18,8 +18,10 @@ eps_data = pd.DataFrame()
 for company, ticker in companies.items():
     stock = yf.Ticker(ticker)
     earnings = stock.earnings
-    if not earnings.empty:
+    if isinstance(earnings, pd.DataFrame) and not earnings.empty:
         eps_data[company] = earnings['Earnings Per Share']
+    else:
+        print(f"Could not retrieve earnings data for {company}")
 
 # Transpose the DataFrame to have years as rows
 eps_data = eps_data.T
