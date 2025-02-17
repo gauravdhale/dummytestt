@@ -28,5 +28,4 @@ def plot_eps(bank_name):
 
 st.title("Bank EPS Visualization")
 bank_name = st.selectbox("Select a bank:", ["State Bank of India", "Kotak Mahindra Bank", "Axis Bank", "Bank of Baroda", "HDFC Bank", "ICICI Bank"])
-if st.button("Show EPS Graph"):
-    plot_eps(bank_name)
+plot_eps(bank_name)
