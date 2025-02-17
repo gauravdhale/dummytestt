@@ -1,3 +1,4 @@
+import streamlit as st
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -11,20 +12,21 @@ def plot_eps(bank_name):
         "ICICI Bank": [22, 24, 26, 27, 28]
     }
     
-    years = np.arange(2020, 2025)
+    years = np.array([2020, 2021, 2022, 2023, 2024])
     
     if bank_name in eps_data:
-        plt.figure(figsize=(8, 5))
-        plt.plot(years, eps_data[bank_name], marker='o', linestyle='-', label=bank_name)
-        plt.xlabel("Year")
-        plt.ylabel("EPS")
-        plt.title(f"Earnings Per Share (EPS) of {bank_name}")
-        plt.legend()
-        plt.grid(True)
-        plt.show()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(years, eps_data[bank_name], marker='o', linestyle='-', label=bank_name)
+        ax.set_xlabel("Year")
+        ax.set_ylabel("EPS")
+        ax.set_title(f"Earnings Per Share (EPS) of {bank_name}")
+        ax.legend()
+        ax.grid(True)
+        st.pyplot(fig)
     else:
-        print("Bank not found. Please enter a valid bank name.")
+        st.error(f"Bank '{bank_name}' not found. Please select a valid bank.")
 
-# Example usage
-selected_bank = input("Enter the bank name: ")
-plot_eps(selected_bank)
+st.title("Bank EPS Visualization")
+bank_name = st.selectbox("Select a bank:", ["State Bank of India", "Kotak Mahindra Bank", "Axis Bank", "Bank of Baroda", "HDFC Bank", "ICICI Bank"])
+if st.button("Show EPS Graph"):
+    plot_eps(bank_name)
